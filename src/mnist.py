@@ -43,9 +43,6 @@ def visualiser_mnist(X_train, y_train):
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     img_path = os.path.join(base_dir, "images", "mnist_exemples.png")
     
-    if os.path.exists(img_path):
-        print("[OK] mnist_exemples.png existe deja")
-        return
     
     fig, axes = plt.subplots(2, 5, figsize=(12, 5))
     fig.suptitle('MNIST Dataset Samples', fontsize=16)
@@ -111,9 +108,6 @@ def visualiser_erreurs_mlp(X_test, y_test, W1, b1, W2, b2):
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     img_path = os.path.join(base_dir, "images", "erreurs_mlp.png")
     
-    if os.path.exists(img_path):
-        print("[OK] erreurs_mlp.png existe deja")
-        return
     
     y_pred_test = np.argmax(forward_mlp(X_test, W1, b1, W2, b2)[0], axis=0)
     erreurs = np.where(y_pred_test != y_test)[0]
@@ -139,9 +133,6 @@ def visualiser_tsne(X_test, y_test):
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     img_path = os.path.join(base_dir, "images", "tsne_mnist.png")
     
-    if os.path.exists(img_path):
-        print("[OK] tsne_mnist.png existe deja")
-        return
     
     X_sample = X_test[:2000]
     y_sample = y_test[:2000]

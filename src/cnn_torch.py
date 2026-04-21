@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import TensorDataset, DataLoader
 import torchvision
+import matplotlib.pyplot as plt
 from utils import taux_erreur
 
 
@@ -53,6 +54,8 @@ def entrainer_cnn(X_tr, y_tr, X_te, y_te, epochs=20, batch_size=128):
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
     
+    train_losses = []
+    
     for epoch in range(epochs):
         for X_batch, y_batch in train_loader:
             optimizer.zero_grad()
@@ -60,13 +63,27 @@ def entrainer_cnn(X_tr, y_tr, X_te, y_te, epochs=20, batch_size=128):
             loss = criterion(outputs, y_batch)
             loss.backward()
             optimizer.step()
+            
+        train_losses.append(loss.item())
+        
         if epoch % 5 == 0:
             print(f"Epoch {epoch}, Loss: {loss.item():.4f}")
     
     with torch.no_grad():
-        y_pred_cnn = model(X_te).argmax(dim=1).numpy()
-    
-    print("CNN — Erreur test :", taux_erreur(y_te.numpy(), y_pred_cnn))
+        y_pred_train = model(X_tr).argmax(dim=1).numpy()
+        y_pred_test  = model(X_te).argmax(dim=1).numpy()
+
+    print("CNN — Erreur train :", taux_erreur(y_tr.numpy(), y_pred_train))
+    print("CNN — Erreur test  :", taux_erreur(y_te.numpy(), y_pred_test))
+
+    # Courbe de loss
+    plt.figure()
+    plt.plot(train_losses)
+    plt.title("Courbe de loss CNN CIFAR-10")
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.savefig("loss_cnn_cifar.png", dpi=100)
+    plt.show()
 
 
 def run_cnn():

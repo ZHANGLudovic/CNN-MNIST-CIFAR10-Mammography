@@ -19,9 +19,6 @@ def visualiser_filtres_convolution(X_train, y_train):
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     img_path = os.path.join(base_dir, "images", "filtres_convolution.png")
     
-    if os.path.exists(img_path):
-        print("[OK] filtres_convolution.png existe deja")
-        return
     
     K1 = np.ones((3, 3)) / 9
     K2 = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]])

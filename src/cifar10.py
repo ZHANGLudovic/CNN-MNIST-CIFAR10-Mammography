@@ -32,9 +32,6 @@ def visualiser_cifar10(X_train, y_train):
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     img_path = os.path.join(base_dir, "images", "cifar10_samples.png")
     
-    if os.path.exists(img_path):
-        print("[OK] cifar10_samples.png existe deja")
-        return
     
     fig, axes = plt.subplots(2, 5, figsize=(12, 5))
     for i in range(10):

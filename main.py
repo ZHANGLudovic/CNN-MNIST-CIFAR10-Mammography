@@ -47,7 +47,11 @@ def main():
     run_cnn()
     
     # MASS CASE DATASET 
-    run_mass_dataset()
+    #csv_train = os.path.join(base_dir, "dataset", "csv", "mass_case_description_train_set.csv")
+    #csv_test  = os.path.join(base_dir, "dataset", "csv", "mass_case_description_test_set.csv")
+    #jpeg_root = os.path.join(base_dir, "dataset", "jpeg")
+
+    #run_mass_dataset(csv_train, csv_test, jpeg_root)
     
     print("\n" + "="*50)
     print("Pipeline complet terminé!")
