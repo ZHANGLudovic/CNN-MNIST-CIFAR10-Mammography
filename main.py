@@ -33,7 +33,7 @@ def main():
     print("\n" + "="*50)
     print("CONVOLUTION 2D")
     print("="*50)
-    # Charger d'abord les données CIFAR pour avoir des images couleur
+    #Charger d'abord les données CIFAR pour avoir des images couleur
     import torchvision
     train_set = torchvision.datasets.CIFAR10(root='./data', train=True, download=True)
     X_train = np.array(train_set.data).reshape(-1, 32*32*3) / 255.0
@@ -47,11 +47,11 @@ def main():
     run_cnn()
     
     # MASS CASE DATASET 
-    #csv_train = os.path.join(base_dir, "dataset", "csv", "mass_case_description_train_set.csv")
-    #csv_test  = os.path.join(base_dir, "dataset", "csv", "mass_case_description_test_set.csv")
-    #jpeg_root = os.path.join(base_dir, "dataset", "jpeg")
+    csv_train = os.path.join(base_dir, "dataset", "csv", "mass_case_description_train_set.csv")
+    csv_test  = os.path.join(base_dir, "dataset", "csv", "mass_case_description_test_set.csv")
+    jpeg_root = os.path.join(base_dir, "dataset", "jpeg")
 
-    #run_mass_dataset(csv_train, csv_test, jpeg_root)
+    run_mass_dataset(csv_train, csv_test, jpeg_root)
     
     print("\n" + "="*50)
     print("Pipeline complet terminé!")

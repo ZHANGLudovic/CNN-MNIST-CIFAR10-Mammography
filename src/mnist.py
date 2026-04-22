@@ -3,7 +3,11 @@ import matplotlib.pyplot as plt
 from sklearn.datasets import fetch_openml
 from sklearn.manifold import TSNE
 import os
-from models_numpy import initialiser_parametres, entrainer, predire, initialiser_mlp, entrainer_mlp, forward_mlp
+from models_numpy import (
+    initialiser_parametres, entrainer, predire,
+    initialiser_mlp, entrainer_mlp, forward_mlp,
+    initialiser_mlp2, entrainer_mlp2, forward_mlp2  
+)
 from utils import taux_erreur
 
 def charger_mnist():
@@ -102,6 +106,56 @@ def entrainer_mlp_mnist(X_train, y_train, X_test, y_test):
     
     return W1, b1, W2, b2
 
+def entrainer_mlp2_mnist(X_train, y_train, X_test, y_test):
+    """Entraîne et teste le MLP 2 couches"""
+    print("\n=== MLP 2 COUCHES MNIST ===")
+    W1, b1, W2, b2, W3, b3 = initialiser_mlp2()
+    W1, b1, W2, b2, W3, b3 = entrainer_mlp2(
+        X_train, y_train,
+        W1, b1, W2, b2, W3, b3,
+        learning_rate=0.1,
+        epochs=50
+    )
+
+    y_pred_train = np.argmax(forward_mlp2(X_train, W1, b1, W2, b2, W3, b3)[0], axis=0)
+    y_pred_test  = np.argmax(forward_mlp2(X_test,  W1, b1, W2, b2, W3, b3)[0], axis=0)
+
+    print("MLP2 - Erreur train :", taux_erreur(y_pred_train, y_train))
+    print("MLP2 - Erreur test  :", taux_erreur(y_pred_test,  y_test))
+
+    return W1, b1, W2, b2, W3, b3
+
+
+def comparer_modeles(X_train, y_train, X_test, y_test):
+    """Compare les 3 modèles et affiche un tableau récapitulatif"""
+    print("\n=== COMPARAISON DES MODÈLES ===")
+
+    # Linéaire
+    A, b = initialiser_parametres()
+    A, b = entrainer(X_train[:5000], y_train[:5000], A, b, epochs=500)
+    err_train_lin = taux_erreur(predire(X_train, A, b), y_train)
+    err_test_lin  = taux_erreur(predire(X_test,  A, b), y_test)
+
+    # MLP 1 couche
+    W1, b1, W2, b2 = initialiser_mlp()
+    W1, b1, W2, b2 = entrainer_mlp(X_train, y_train, W1, b1, W2, b2,
+                                    learning_rate=0.1, epochs=50)
+    err_train_mlp1 = taux_erreur(np.argmax(forward_mlp(X_train, W1, b1, W2, b2)[0], axis=0), y_train)
+    err_test_mlp1  = taux_erreur(np.argmax(forward_mlp(X_test,  W1, b1, W2, b2)[0], axis=0), y_test)
+
+    # MLP 2 couches
+    W1, b1, W2, b2, W3, b3 = initialiser_mlp2()
+    W1, b1, W2, b2, W3, b3 = entrainer_mlp2(X_train, y_train, W1, b1, W2, b2, W3, b3,
+                                              learning_rate=0.1, epochs=50)
+    err_train_mlp2 = taux_erreur(np.argmax(forward_mlp2(X_train, W1, b1, W2, b2, W3, b3)[0], axis=0), y_train)
+    err_test_mlp2  = taux_erreur(np.argmax(forward_mlp2(X_test,  W1, b1, W2, b2, W3, b3)[0], axis=0), y_test)
+
+    print(f"\n{'Modèle':<20} {'Erreur Train':>15} {'Erreur Test':>15}")
+    print("-" * 50)
+    print(f"{'Linéaire':<20} {err_train_lin:>15.4f} {err_test_lin:>15.4f}")
+    print(f"{'MLP 1 couche':<20} {err_train_mlp1:>15.4f} {err_test_mlp1:>15.4f}")
+    print(f"{'MLP 2 couches':<20} {err_train_mlp2:>15.4f} {err_test_mlp2:>15.4f}")
+
 
 def visualiser_erreurs_mlp(X_test, y_test, W1, b1, W2, b2):
     """Affiche les erreurs du MLP"""
@@ -165,5 +219,7 @@ def run_mnist():
     
     entrainer_modele_lineaire(X_train, y_train, X_test, y_test)
     W1, b1, W2, b2 = entrainer_mlp_mnist(X_train, y_train, X_test, y_test)
+    entrainer_mlp2_mnist(X_train, y_train, X_test, y_test)  
+    comparer_modeles(X_train, y_train, X_test, y_test)       
     visualiser_erreurs_mlp(X_test, y_test, W1, b1, W2, b2)
     visualiser_tsne(X_test, y_test)

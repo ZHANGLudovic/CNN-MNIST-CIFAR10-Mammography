@@ -92,6 +92,106 @@ def entrainer_mlp_cifar(X_train, y_train, X_test, y_test):
     
     print("CIFAR MLP — Erreur train :", taux_erreur(y_pred_train_mlp_c, y_train))
     print("CIFAR MLP — Erreur test :", taux_erreur(y_pred_test_mlp_c, y_test))
+    
+def convertir_grayscale(train_set, test_set):
+    """Convertit les images CIFAR-10 en niveaux de gris"""
+    X_train_raw = np.array(train_set.data) / 255.0  # (50000, 32, 32, 3)
+    X_test_raw  = np.array(test_set.data)  / 255.0  # (10000, 32, 32, 3)
+
+    # Formule standard de conversion
+    X_train_gray = (0.299 * X_train_raw[:,:,:,0] +
+                    0.587 * X_train_raw[:,:,:,1] +
+                    0.114 * X_train_raw[:,:,:,2])
+
+    X_test_gray  = (0.299 * X_test_raw[:,:,:,0] +
+                    0.587 * X_test_raw[:,:,:,1] +
+                    0.114 * X_test_raw[:,:,:,2])
+
+    # Aplatir en vecteurs 1024
+    X_train_gray = X_train_gray.reshape(-1, 1024)
+    X_test_gray  = X_test_gray.reshape(-1, 1024)
+
+    print("X_train_gray :", X_train_gray.shape)
+    print("X_test_gray  :", X_test_gray.shape)
+
+    return X_train_gray, X_test_gray
+
+
+def entrainer_modele_lineaire_cifar_gray(X_train_gray, y_train, X_test_gray, y_test):
+    """Entraîne le modèle linéaire sur CIFAR-10 en niveaux de gris"""
+    print("\n=== MODÈLE LINÉAIRE CIFAR-10 NIVEAUX DE GRIS ===")
+    A = np.random.randn(10, 1024) * 0.01
+    b = np.random.randn(10, 1) * 0.01
+    A, b = entrainer(X_train_gray[:5000], y_train[:5000], A, b, epochs=500)
+
+    y_pred_train = predire(X_train_gray, A, b)
+    y_pred_test  = predire(X_test_gray,  A, b)
+
+    print("Linéaire Gris — Erreur train :", taux_erreur(y_pred_train, y_train))
+    print("Linéaire Gris — Erreur test  :", taux_erreur(y_pred_test,  y_test))
+
+    return A, b
+
+
+def entrainer_mlp_cifar_gray(X_train_gray, y_train, X_test_gray, y_test):
+    """Entraîne le MLP sur CIFAR-10 en niveaux de gris"""
+    print("\n=== MLP CIFAR-10 NIVEAUX DE GRIS ===")
+    W1 = np.random.randn(128, 1024) * 0.01
+    b1 = np.random.randn(128, 1) * 0.01
+    W2 = np.random.randn(10, 128) * 0.01
+    b2 = np.random.randn(10, 1) * 0.01
+
+    W1, b1, W2, b2 = entrainer_mlp(
+        X_train_gray, y_train,
+        W1, b1, W2, b2,
+        learning_rate=0.1,
+        epochs=50
+    )
+
+    y_pred_train = np.argmax(forward_mlp(X_train_gray, W1, b1, W2, b2)[0], axis=0)
+    y_pred_test  = np.argmax(forward_mlp(X_test_gray,  W1, b1, W2, b2)[0], axis=0)
+
+    print("MLP Gris — Erreur train :", taux_erreur(y_pred_train, y_train))
+    print("MLP Gris — Erreur test  :", taux_erreur(y_pred_test,  y_test))
+
+
+def comparer_cifar(X_train, y_train, X_test, y_test,
+                   X_train_gray, X_test_gray):
+    """Compare les résultats gris vs couleur"""
+    print("\n=== COMPARAISON GRIS VS COULEUR CIFAR-10 ===")
+
+    # Linéaire couleur
+    A_c, b_c = initialiser_parametres_cifar()
+    A_c, b_c = entrainer(X_train[:5000], y_train[:5000], A_c, b_c, epochs=500)
+    err_test_lin_color = taux_erreur(predire(X_test, A_c, b_c), y_test)
+
+    # Linéaire gris
+    A_g = np.random.randn(10, 1024) * 0.01
+    b_g = np.random.randn(10, 1) * 0.01
+    A_g, b_g = entrainer(X_train_gray[:5000], y_train[:5000], A_g, b_g, epochs=500)
+    err_test_lin_gray = taux_erreur(predire(X_test_gray, A_g, b_g), y_test)
+
+    # MLP couleur
+    W1_c, b1_c, W2_c, b2_c = initialiser_mlp_cifar()
+    W1_c, b1_c, W2_c, b2_c = entrainer_mlp(X_train, y_train, W1_c, b1_c, W2_c, b2_c,
+                                             learning_rate=0.1, epochs=50)
+    err_test_mlp_color = taux_erreur(
+        np.argmax(forward_mlp(X_test, W1_c, b1_c, W2_c, b2_c)[0], axis=0), y_test)
+
+    # MLP gris
+    W1_g = np.random.randn(128, 1024) * 0.01
+    b1_g = np.random.randn(128, 1) * 0.01
+    W2_g = np.random.randn(10, 128) * 0.01
+    b2_g = np.random.randn(10, 1) * 0.01
+    W1_g, b1_g, W2_g, b2_g = entrainer_mlp(X_train_gray, y_train, W1_g, b1_g, W2_g, b2_g,
+                                             learning_rate=0.1, epochs=50)
+    err_test_mlp_gray = taux_erreur(
+        np.argmax(forward_mlp(X_test_gray, W1_g, b1_g, W2_g, b2_g)[0], axis=0), y_test)
+
+    print(f"\n{'Modèle':<25} {'Gris':>10} {'Couleur':>10}")
+    print("-" * 45)
+    print(f"{'Linéaire':<25} {err_test_lin_gray:>10.4f} {err_test_lin_color:>10.4f}")
+    print(f"{'MLP 1 couche':<25} {err_test_mlp_gray:>10.4f} {err_test_mlp_color:>10.4f}")
 
 
 def run_cifar10():
@@ -99,8 +199,19 @@ def run_cifar10():
     print("\n" + "="*50)
     print("CIFAR-10 DATASET")
     print("="*50)
-    
+
     X_train, X_test, y_train, y_test, train_set, test_set = charger_cifar10()
     visualiser_cifar10(X_train, y_train)
+
+    # Version couleur
     entrainer_modele_lineaire_cifar(X_train, y_train, X_test, y_test)
     entrainer_mlp_cifar(X_train, y_train, X_test, y_test)
+
+    # Version niveaux de gris
+    X_train_gray, X_test_gray = convertir_grayscale(train_set, test_set)  
+    entrainer_modele_lineaire_cifar_gray(X_train_gray, y_train, X_test_gray, y_test)  
+    entrainer_mlp_cifar_gray(X_train_gray, y_train, X_test_gray, y_test)  
+
+    # Comparaison
+    comparer_cifar(X_train, y_train, X_test, y_test,
+                   X_train_gray, X_test_gray)  

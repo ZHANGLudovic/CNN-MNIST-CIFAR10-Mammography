@@ -112,3 +112,81 @@ def entrainer_mlp(X, y, W1, b1, W2, b2, learning_rate, epochs, batch_size=128):
             print(f"Epoch {epoch}, Cost: {cost:.4f}")
     
     return W1, b1, W2, b2
+
+# ============ MODÈLE MLP 2 COUCHES ============
+
+def initialiser_mlp2():
+    """Initialise les paramètres du MLP 2 couches cachées"""
+    W1 = np.random.randn(128, 784) * 0.01
+    b1 = np.random.randn(128, 1) * 0.01
+    W2 = np.random.randn(64, 128) * 0.01
+    b2 = np.random.randn(64, 1) * 0.01
+    W3 = np.random.randn(10, 64) * 0.01
+    b3 = np.random.randn(10, 1) * 0.01
+    return W1, b1, W2, b2, W3, b3
+
+
+def forward_mlp2(X, W1, b1, W2, b2, W3, b3):
+    """Forward pass MLP 2 couches cachées"""
+    Z1 = W1 @ X.T + b1
+    A1 = relu(Z1)
+    Z2 = W2 @ A1 + b2
+    A2 = relu(Z2)
+    Z3 = W3 @ A2 + b3
+    P = softmax(Z3)
+    return P, A1, Z1, A2, Z2
+
+
+def backprop_mlp2(X, y, P, A1, Z1, A2, Z2, W2, W3, n):
+    """Backpropagation MLP 2 couches cachées"""
+    Y = np.eye(10)[:, y]
+    # Couche 3
+    dZ3 = P - Y
+    dW3 = (dZ3 @ A2.T) / n
+    db3 = np.sum(dZ3, axis=1, keepdims=True) / n
+    # Couche 2
+    dA2 = W3.T @ dZ3
+    dZ2 = dA2 * (Z2 > 0)
+    dW2 = (dZ2 @ A1.T) / n
+    db2 = np.sum(dZ2, axis=1, keepdims=True) / n
+    # Couche 1
+    dA1 = W2.T @ dZ2
+    dZ1 = dA1 * (Z1 > 0)
+    dW1 = (dZ1 @ X) / n
+    db1 = np.sum(dZ1, axis=1, keepdims=True) / n
+    return dW1, db1, dW2, db2, dW3, db3
+
+
+def entrainer_mlp2(X, y, W1, b1, W2, b2, W3, b3,
+                   learning_rate, epochs, batch_size=128):
+    """Entraîne le MLP 2 couches cachées"""
+    n = X.shape[0]
+
+    for epoch in range(epochs):
+        indices = np.random.permutation(n)
+        X_shuffle = X[indices]
+        y_shuffle = y[indices]
+
+        for i in range(0, n, batch_size):
+            X_batch = X_shuffle[i:i+batch_size]
+            y_batch = y_shuffle[i:i+batch_size]
+            n_batch = X_batch.shape[0]
+
+            P, A1, Z1, A2, Z2 = forward_mlp2(
+                X_batch, W1, b1, W2, b2, W3, b3)
+            dW1, db1, dW2, db2, dW3, db3 = backprop_mlp2(
+                X_batch, y_batch, P, A1, Z1, A2, Z2, W2, W3, n_batch)
+
+            W1 -= learning_rate * dW1
+            b1 -= learning_rate * db1
+            W2 -= learning_rate * dW2
+            b2 -= learning_rate * db2
+            W3 -= learning_rate * dW3
+            b3 -= learning_rate * db3
+
+        if epoch % 10 == 0:
+            P_full, _, _, _, _ = forward_mlp2(X, W1, b1, W2, b2, W3, b3)
+            cost = cross_entropy(P_full, y, n)
+            print(f"Epoch {epoch}, Cost: {cost:.4f}")
+
+    return W1, b1, W2, b2, W3, b3
