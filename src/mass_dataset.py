@@ -12,8 +12,7 @@ from torchvision import transforms
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import (
     confusion_matrix, ConfusionMatrixDisplay,
-    roc_auc_score, precision_score, recall_score, f1_score,
-    classification_report
+    roc_auc_score, classification_report
 )
 import matplotlib.pyplot as plt
 
@@ -29,6 +28,7 @@ torch.manual_seed(SEED)
 np.random.seed(SEED)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print("Device :", device)
 
 
 # ============ CHARGEMENT CSV ============
@@ -61,7 +61,8 @@ def find_image_path(raw_csv_path, index_by_filename, index_by_stem, index_by_par
     """Retrouve le chemin réel d'une image depuis le CSV"""
     if pd.isna(raw_csv_path):
         return None
-    parts    = str(raw_csv_path).replace("\\", "/").split("/")
+
+    parts = str(raw_csv_path).replace("\\", "/").split("/")
     filename = parts[-1] if parts else None
     stem     = Path(filename).stem if filename else None
     parent   = parts[-2] if len(parts) >= 2 else None
@@ -76,11 +77,14 @@ def find_image_path(raw_csv_path, index_by_filename, index_by_stem, index_by_par
 
 
 def load_dataframe(csv_path, jpeg_root):
+    """Charge le CSV et associe chaque ligne à une image"""
     index_by_filename, index_by_stem, index_by_parent = build_image_index(jpeg_root)
 
     df = pd.read_csv(csv_path)
     df["label"] = df["pathology"].apply(pathology_to_label)
     df = df[df["label"].notna()].copy()
+    
+    
     df["img_path"] = df["cropped image file path"].apply(
         lambda x: find_image_path(x, index_by_filename, index_by_stem, index_by_parent)
     )
@@ -95,7 +99,6 @@ def load_dataframe(csv_path, jpeg_root):
 
 # ============ DATASET ============
 def preprocess_mammo(img):
-    """Prétraitement des mammographies"""
     img = img.convert("L")
     img = ImageOps.autocontrast(img)
     img = img.convert("RGB")
@@ -139,17 +142,17 @@ class MammoDataset(Dataset):
 
 # ============ MODÈLE CNN ============
 class CNN_Mammographie(nn.Module):
-    """CNN from scratch pour mammographies"""
     def __init__(self):
         super().__init__()
-        self.conv1 = nn.Conv2d(3, 32, kernel_size=3, padding=1)
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, padding=1)
-        self.pool  = nn.MaxPool2d(2, 2)
-        self.conv3 = nn.Conv2d(64, 64, kernel_size=3, padding=1)
-        self.pool2 = nn.MaxPool2d(2, 2)
-        self.fc1   = nn.Linear(64 * 56 * 56, 128)
+        self.conv1   = nn.Conv2d(3, 32, kernel_size=3, padding=1)
+        self.conv2   = nn.Conv2d(32, 64, kernel_size=3, padding=1)
+        self.pool    = nn.MaxPool2d(2, 2)
+        self.conv3   = nn.Conv2d(64, 64, kernel_size=3, padding=1)
+        self.pool2   = nn.MaxPool2d(2, 2)
+        # 224 -> 112 -> 56 -> 28
+        self.fc1     = nn.Linear(64 * 28 * 28, 128)
         self.dropout = nn.Dropout(0.4)
-        self.fc2   = nn.Linear(128, 2)
+        self.fc2     = nn.Linear(128, 2)
 
     def forward(self, x):
         x = torch.relu(self.conv1(x))
@@ -214,24 +217,40 @@ def evaluate(model, loader, criterion):
 
 # ============ RUN PRINCIPAL ============
 def run_mass_dataset(csv_train, csv_test, jpeg_root):
-    """Lance tout le pipeline mammographies"""
     print("\n" + "="*50)
     print("MAMMOGRAPHIES — CBIS-DDSM")
     print("="*50)
 
-    # Chargement
+    # Charger les données d'entraînement
     df_train_full = load_dataframe(csv_train, jpeg_root)
-    df_test       = load_dataframe(csv_test,  jpeg_root)
+    
+    if len(df_train_full) == 0:
+        print("❌ Aucune image trouvée pour le train. Vérifiez que les images JPEG sont bien dans :", jpeg_root)
+        return
+    
+    # Charger les données de test si le fichier existe
+    import os
+    if os.path.exists(csv_test):
+        df_test = load_dataframe(csv_test, jpeg_root)
+        if len(df_test) == 0:
+            print("⚠️  Aucune image trouvée pour le test. Utilisation du set d'entraînement pour évaluation finale.")
+            df_test = None
+    else:
+        print(f"⚠️  Fichier de test non trouvé: {csv_test}")
+        df_test = None
 
     train_df, val_df = train_test_split(
         df_train_full, test_size=0.15,
         stratify=df_train_full["label"], random_state=SEED
     )
 
-    # Datasets
     train_dataset = MammoDataset(train_df, transform=train_transform)
     val_dataset   = MammoDataset(val_df,   transform=eval_transform)
-    test_dataset  = MammoDataset(df_test,  transform=eval_transform)
+    
+    if df_test is not None and len(df_test) > 0:
+        test_dataset  = MammoDataset(df_test,  transform=eval_transform)
+    else:
+        test_dataset = None
 
     # Gestion déséquilibre classes
     train_labels   = train_df["label"].values
@@ -247,12 +266,10 @@ def run_mass_dataset(csv_train, csv_test, jpeg_root):
 
     train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, sampler=train_sampler)
     val_loader   = DataLoader(val_dataset,   batch_size=BATCH_SIZE, shuffle=False)
-    test_loader  = DataLoader(test_dataset,  batch_size=BATCH_SIZE, shuffle=False)
+    test_loader  = DataLoader(test_dataset,  batch_size=BATCH_SIZE, shuffle=False) if test_dataset else None
 
-    # Modèle
-    model = CNN_Mammographie().to(device)
-
-    # Loss pondérée
+    # Modèle + Loss pondérée
+    model   = CNN_Mammographie().to(device)
     n_benin = (train_df["label"] == 0).sum()
     n_malin = (train_df["label"] == 1).sum()
     total   = n_benin + n_malin
@@ -279,16 +296,15 @@ def run_mass_dataset(csv_train, csv_test, jpeg_root):
         history["val_auc"].append(val_auc)
 
         scheduler.step(val_auc)
-
         print(f"Epoch {epoch+1:02d}/{EPOCHS} | "
               f"Train Loss: {train_loss:.4f} Acc: {train_acc:.4f} | "
               f"Val Loss: {val_loss:.4f} Acc: {val_acc:.4f} AUC: {val_auc:.4f}")
 
-        # Early stopping
         if val_auc > best_val_auc:
             best_val_auc = val_auc
             best_state   = copy.deepcopy(model.state_dict())
-            counter      = 0
+            torch.save(best_state, "mammo_checkpoint.pth")
+            counter = 0
         else:
             counter += 1
             if counter >= PATIENCE:
@@ -297,30 +313,31 @@ def run_mass_dataset(csv_train, csv_test, jpeg_root):
 
     model.load_state_dict(best_state)
 
-    # Évaluation finale sur le test
-    test_loss, test_acc, test_auc, y_true, y_prob, y_pred = evaluate(
-        model, test_loader, criterion
-    )
+    # Évaluation finale
+    if test_loader is not None:
+        test_loss, test_acc, test_auc, y_true, y_prob, y_pred = evaluate(
+            model, test_loader, criterion
+        )
 
-    print("\n===== RÉSULTATS TEST =====")
-    print(f"Accuracy : {test_acc:.4f}")
-    print(f"AUC      : {test_auc:.4f}")
-    print(classification_report(y_true, y_pred,
-                                target_names=["Bénin", "Malin"], digits=4))
+        print("\n===== RÉSULTATS TEST =====")
+        print(f"Accuracy : {test_acc:.4f}")
+        print(f"AUC      : {test_auc:.4f}")
+        print(classification_report(y_true, y_pred,
+                                    target_names=["Bénin", "Malin"], digits=4))
 
-    # Matrice de confusion
-    cm = confusion_matrix(y_true, y_pred)
-    TN, FP, FN, TP = cm.ravel()
-    print(f"Faux négatifs (cancers non détectés) : {FN}")
+        cm = confusion_matrix(y_true, y_pred)
+        TN, FP, FN, TP = cm.ravel()
+        print(f"Faux négatifs (cancers non détectés) : {FN}")
 
-    disp = ConfusionMatrixDisplay(cm, display_labels=["Bénin", "Malin"])
-    disp.plot(cmap="Blues")
-    plt.title("Matrice de confusion — Mammographies")
-    plt.tight_layout()
-    plt.savefig("confusion_matrix_mammo.png", dpi=150)
-    plt.show()
+        disp = ConfusionMatrixDisplay(cm, display_labels=["Bénin", "Malin"])
+        disp.plot(cmap="Blues")
+        plt.title("Matrice de confusion — Mammographies")
+        plt.tight_layout()
+        plt.savefig("confusion_matrix_mammo.png", dpi=150)
+        plt.show()
+    else:
+        print("\n===== ENTRAÎNEMENT TERMINÉ (pas de données de test) =====")
 
-    # Courbes
     epochs_range = range(1, len(history["train_loss"]) + 1)
 
     plt.figure()
@@ -339,6 +356,5 @@ def run_mass_dataset(csv_train, csv_test, jpeg_root):
     plt.savefig("accuracy_curve_mammo.png", dpi=150)
     plt.show()
 
-    # Sauvegarde du modèle
     torch.save(model.state_dict(), "mammo_model_final.pth")
     print("\nModèle sauvegardé : mammo_model_final.pth")

@@ -27,29 +27,29 @@ def main():
     """Lance le pipeline complet"""
     
     # MNIST 
-    run_mnist()
+    # run_mnist()
     
     # CONVOLUTIONS 
-    print("\n" + "="*50)
-    print("CONVOLUTION 2D")
-    print("="*50)
+    # print("\n" + "="*50)
+    # print("CONVOLUTION 2D")
+    # print("="*50)
     #Charger d'abord les données CIFAR pour avoir des images couleur
-    import torchvision
-    train_set = torchvision.datasets.CIFAR10(root='./data', train=True, download=True)
-    X_train = np.array(train_set.data).reshape(-1, 32*32*3) / 255.0
-    y_train = np.array(train_set.targets)
-    visualiser_filtres_convolution(X_train, y_train)
+    # import torchvision
+    # train_set = torchvision.datasets.CIFAR10(root='./data', train=True, download=True)
+    # X_train = np.array(train_set.data).reshape(-1, 32*32*3) / 255.0
+    # y_train = np.array(train_set.targets)
+    # visualiser_filtres_convolution(X_train, y_train)
     
     # CIFAR-10 
-    run_cifar10()
+    # run_cifar10()
     
     # CNN 
-    run_cnn()
+    # run_cnn()
     
     # MASS CASE DATASET 
-    csv_train = os.path.join(base_dir, "dataset", "csv", "mass_case_description_train_set.csv")
-    csv_test  = os.path.join(base_dir, "dataset", "csv", "mass_case_description_test_set.csv")
-    jpeg_root = os.path.join(base_dir, "dataset", "jpeg")
+    csv_train = os.path.join(base_dir, "dataset", "mass_case_description_train_set.csv")
+    csv_test  = os.path.join(base_dir, "dataset", "mass_case_description_test_set.csv")
+    jpeg_root = os.path.join(base_dir, "dataset")
 
     run_mass_dataset(csv_train, csv_test, jpeg_root)
     
