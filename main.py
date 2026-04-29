@@ -4,6 +4,7 @@ Main script - Orchestre tout le projet machine learning
 
 import sys
 import os
+import numpy as np
 
 # Ajouter le dossier src au chemin Python
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
@@ -20,7 +21,6 @@ from convolution import visualiser_filtres_convolution
 from cifar10 import run_cifar10
 from cnn_torch import run_cnn
 from mass_dataset import run_mass_dataset
-import numpy as np
 
 
 def main():
@@ -44,18 +44,18 @@ def main():
     # run_cifar10()
     
     # CNN 
-    # run_cnn()
+    run_cnn()
     
     # MASS CASE DATASET 
-    csv_train = os.path.join(base_dir, "dataset", "mass_case_description_train_set.csv")
-    csv_test  = os.path.join(base_dir, "dataset", "mass_case_description_test_set.csv")
-    jpeg_root = os.path.join(base_dir, "dataset")
+    # csv_train = os.path.join(base_dir, "dataset", "mass_case_description_train_set.csv")
+    # csv_test  = os.path.join(base_dir, "dataset", "mass_case_description_test_set.csv")
+    # jpeg_root = os.path.join(base_dir, "dataset")
 
-    run_mass_dataset(csv_train, csv_test, jpeg_root)
+    # run_mass_dataset(csv_train, csv_test, jpeg_root)
     
-    print("\n" + "="*50)
-    print("Pipeline complet terminé!")
-    print("="*50)
+    # print("\n" + "="*50)
+    # print("Pipeline complet terminé!")
+    # print("="*50)
 
 
 if __name__ == "__main__":

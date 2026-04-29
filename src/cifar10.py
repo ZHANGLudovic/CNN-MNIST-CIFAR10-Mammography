@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torchvision
 import os
-from models_numpy import initialiser_parametres, entrainer, predire, initialiser_mlp, entrainer_mlp, forward_mlp
+from models_numpy import initialiser_parametres, entrainer, predire, initialiser_mlp, entrainer_mlp, forward_mlp, initialiser_mlp2, entrainer_mlp2, forward_mlp2
 from utils import taux_erreur
 
 
@@ -92,6 +92,35 @@ def entrainer_mlp_cifar(X_train, y_train, X_test, y_test):
     
     print("CIFAR MLP — Erreur train :", taux_erreur(y_pred_train_mlp_c, y_train))
     print("CIFAR MLP — Erreur test :", taux_erreur(y_pred_test_mlp_c, y_test))
+
+
+def initialiser_mlp2_cifar():
+    """Initialise les paramètres du MLP 2 couches pour CIFAR-10 couleur"""
+    W1 = np.random.randn(128, 32*32*3) * 0.01
+    b1 = np.random.randn(128, 1) * 0.01
+    W2 = np.random.randn(64, 128) * 0.01
+    b2 = np.random.randn(64, 1) * 0.01
+    W3 = np.random.randn(10, 64) * 0.01
+    b3 = np.random.randn(10, 1) * 0.01
+    return W1, b1, W2, b2, W3, b3
+
+
+def entrainer_mlp2_cifar(X_train, y_train, X_test, y_test):
+    """Entraîne et teste le MLP 2 couches sur CIFAR-10"""
+    print("\n=== MLP 2 COUCHES CIFAR-10 ===")
+    W1_c, b1_c, W2_c, b2_c, W3_c, b3_c = initialiser_mlp2_cifar()
+    W1_c, b1_c, W2_c, b2_c, W3_c, b3_c = entrainer_mlp2(
+        X_train, y_train,
+        W1_c, b1_c, W2_c, b2_c, W3_c, b3_c,
+        learning_rate=0.1,
+        epochs=50
+    )
+    
+    y_pred_train_mlp2_c = np.argmax(forward_mlp2(X_train, W1_c, b1_c, W2_c, b2_c, W3_c, b3_c)[0], axis=0)
+    y_pred_test_mlp2_c = np.argmax(forward_mlp2(X_test, W1_c, b1_c, W2_c, b2_c, W3_c, b3_c)[0], axis=0)
+    
+    print("CIFAR MLP 2 couches — Erreur train :", taux_erreur(y_pred_train_mlp2_c, y_train))
+    print("CIFAR MLP 2 couches — Erreur test :", taux_erreur(y_pred_test_mlp2_c, y_test))
     
 def convertir_grayscale(train_set, test_set):
     """Convertit les images CIFAR-10 en niveaux de gris"""
@@ -155,6 +184,35 @@ def entrainer_mlp_cifar_gray(X_train_gray, y_train, X_test_gray, y_test):
     print("MLP Gris — Erreur test  :", taux_erreur(y_pred_test,  y_test))
 
 
+def initialiser_mlp2_cifar_gray():
+    """Initialise les paramètres du MLP 2 couches pour CIFAR-10 gris"""
+    W1 = np.random.randn(128, 1024) * 0.01
+    b1 = np.random.randn(128, 1) * 0.01
+    W2 = np.random.randn(64, 128) * 0.01
+    b2 = np.random.randn(64, 1) * 0.01
+    W3 = np.random.randn(10, 64) * 0.01
+    b3 = np.random.randn(10, 1) * 0.01
+    return W1, b1, W2, b2, W3, b3
+
+
+def entrainer_mlp2_cifar_gray(X_train_gray, y_train, X_test_gray, y_test):
+    """Entraîne le MLP 2 couches sur CIFAR-10 en niveaux de gris"""
+    print("\n=== MLP 2 COUCHES CIFAR-10 NIVEAUX DE GRIS ===")
+    W1, b1, W2, b2, W3, b3 = initialiser_mlp2_cifar_gray()
+    W1, b1, W2, b2, W3, b3 = entrainer_mlp2(
+        X_train_gray, y_train,
+        W1, b1, W2, b2, W3, b3,
+        learning_rate=0.1,
+        epochs=50
+    )
+
+    y_pred_train = np.argmax(forward_mlp2(X_train_gray, W1, b1, W2, b2, W3, b3)[0], axis=0)
+    y_pred_test  = np.argmax(forward_mlp2(X_test_gray, W1, b1, W2, b2, W3, b3)[0], axis=0)
+
+    print("MLP 2 couches Gris — Erreur train :", taux_erreur(y_pred_train, y_train))
+    print("MLP 2 couches Gris — Erreur test  :", taux_erreur(y_pred_test,  y_test))
+
+
 def comparer_cifar(X_train, y_train, X_test, y_test,
                    X_train_gray, X_test_gray):
     """Compare les résultats gris vs couleur"""
@@ -171,14 +229,14 @@ def comparer_cifar(X_train, y_train, X_test, y_test,
     A_g, b_g = entrainer(X_train_gray[:5000], y_train[:5000], A_g, b_g, epochs=500)
     err_test_lin_gray = taux_erreur(predire(X_test_gray, A_g, b_g), y_test)
 
-    # MLP couleur
+    # MLP 1 couche couleur
     W1_c, b1_c, W2_c, b2_c = initialiser_mlp_cifar()
     W1_c, b1_c, W2_c, b2_c = entrainer_mlp(X_train, y_train, W1_c, b1_c, W2_c, b2_c,
                                              learning_rate=0.1, epochs=50)
     err_test_mlp_color = taux_erreur(
         np.argmax(forward_mlp(X_test, W1_c, b1_c, W2_c, b2_c)[0], axis=0), y_test)
 
-    # MLP gris
+    # MLP 1 couche gris
     W1_g = np.random.randn(128, 1024) * 0.01
     b1_g = np.random.randn(128, 1) * 0.01
     W2_g = np.random.randn(10, 128) * 0.01
@@ -188,10 +246,27 @@ def comparer_cifar(X_train, y_train, X_test, y_test,
     err_test_mlp_gray = taux_erreur(
         np.argmax(forward_mlp(X_test_gray, W1_g, b1_g, W2_g, b2_g)[0], axis=0), y_test)
 
+    # MLP 2 couches couleur
+    W1_c2, b1_c2, W2_c2, b2_c2, W3_c2, b3_c2 = initialiser_mlp2_cifar()
+    W1_c2, b1_c2, W2_c2, b2_c2, W3_c2, b3_c2 = entrainer_mlp2(
+        X_train, y_train, W1_c2, b1_c2, W2_c2, b2_c2, W3_c2, b3_c2,
+        learning_rate=0.1, epochs=50)
+    err_test_mlp2_color = taux_erreur(
+        np.argmax(forward_mlp2(X_test, W1_c2, b1_c2, W2_c2, b2_c2, W3_c2, b3_c2)[0], axis=0), y_test)
+
+    # MLP 2 couches gris
+    W1_g2, b1_g2, W2_g2, b2_g2, W3_g2, b3_g2 = initialiser_mlp2_cifar_gray()
+    W1_g2, b1_g2, W2_g2, b2_g2, W3_g2, b3_g2 = entrainer_mlp2(
+        X_train_gray, y_train, W1_g2, b1_g2, W2_g2, b2_g2, W3_g2, b3_g2,
+        learning_rate=0.1, epochs=50)
+    err_test_mlp2_gray = taux_erreur(
+        np.argmax(forward_mlp2(X_test_gray, W1_g2, b1_g2, W2_g2, b2_g2, W3_g2, b3_g2)[0], axis=0), y_test)
+
     print(f"\n{'Modèle':<25} {'Gris':>10} {'Couleur':>10}")
     print("-" * 45)
     print(f"{'Linéaire':<25} {err_test_lin_gray:>10.4f} {err_test_lin_color:>10.4f}")
     print(f"{'MLP 1 couche':<25} {err_test_mlp_gray:>10.4f} {err_test_mlp_color:>10.4f}")
+    print(f"{'MLP 2 couches':<25} {err_test_mlp2_gray:>10.4f} {err_test_mlp2_color:>10.4f}")
 
 
 def run_cifar10():
