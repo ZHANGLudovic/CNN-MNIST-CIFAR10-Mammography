@@ -27,7 +27,7 @@ def main():
     """Lance le pipeline complet"""
     
     # MNIST 
-    # run_mnist()
+    run_mnist()
     
     # CONVOLUTIONS 
     # print("\n" + "="*50)
@@ -44,7 +44,7 @@ def main():
     # run_cifar10()
     
     # CNN 
-    run_cnn()
+    #run_cnn()
     
     # MASS CASE DATASET 
     # csv_train = os.path.join(base_dir, "dataset", "mass_case_description_train_set.csv")

@@ -9,6 +9,7 @@ from models_numpy import (
     initialiser_mlp2, entrainer_mlp2, forward_mlp2  
 )
 from utils import taux_erreur
+from comparaison_activations import run_comparaison_activations
 
 def charger_mnist():
     """Charge et prepare les donnees MNIST"""
@@ -223,3 +224,4 @@ def run_mnist():
     comparer_modeles(X_train, y_train, X_test, y_test)       
     visualiser_erreurs_mlp(X_test, y_test, W1, b1, W2, b2)
     visualiser_tsne(X_test, y_test)
+    run_comparaison_activations(X_train, y_train, X_test, y_test)
